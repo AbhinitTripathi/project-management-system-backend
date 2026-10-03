@@ -1,0 +1,16 @@
+{
+  "name": "project-management-system",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "abhinit tripathi",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js",
+    "format": "npx prettier . --write"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9"
+  }
+}
