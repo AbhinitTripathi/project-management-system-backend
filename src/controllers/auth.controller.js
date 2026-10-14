@@ -1,7 +1,7 @@
 import { User } from '../models/user.model.js';
-import { ApiResponse } from '../utils/apiResponse.js';
-import { ApiError } from '../utils/apiError.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiResponse } from '../utils/api-response.js';
+import { ApiError } from '../utils/api-error.js';
+import { asyncHandler } from '../utils/async-handler.js';
 import { emailVerificationContent, sendEmail } from '../utils/mail.js';
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -25,7 +25,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 const registerUser = asyncHandler(async (reqm, res) => {
   const { email, username, password, role } = reqm.body;
 
-  // Validate Data
+  // Validate Data take care of by express-validator middleware
 
   // Check if User already in DB
   const userExist = await User.findOne({
@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (reqm, res) => {
   sendEmail({
     email: user?.email,
     subject: 'Please Verify your email',
-    mailgenContent: emailVerificationContent(
+    mailGenContent: emailVerificationContent(
       user.username,
       `${reqm.protocol}://${reqm.get('host')}/api/v1/users/verify-email/${unhashedToken}`
     ),
