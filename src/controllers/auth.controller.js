@@ -92,7 +92,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if ((!username && !email) || !password)
     throw new ApiError(400, 'Username/Email and Password is required');
 
-  // Get waht field is provided and what is its value
+  // Get what field is provided and what is its value
   // This helps in dynamic message generation
   const field = username ? 'username' : 'email';
   const value = username || email;

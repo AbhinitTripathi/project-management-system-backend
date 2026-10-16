@@ -1,4 +1,4 @@
-import { body } from 'express-validator';
+import { body, oneOf } from 'express-validator';
 
 const userRegisterValidator = () => {
   return [
@@ -21,4 +21,18 @@ const userRegisterValidator = () => {
   ];
 };
 
-export { userRegisterValidator };
+const userLoginValidator = () => {
+  return [
+    oneOf([
+      body('email').trim().isEmail().withMessage('Email is Invalid'),
+
+      body('username')
+        .trim()
+        .isLength({ min: 3, max: 20 })
+        .withMessage('Username is Invalid'),
+    ]),
+    body('password').notEmpty().withMessage('Password is required'),
+  ];
+};
+
+export { userRegisterValidator, userLoginValidator };
