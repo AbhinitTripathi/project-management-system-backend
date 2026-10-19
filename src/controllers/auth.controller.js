@@ -22,6 +22,93 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
+const loginUser = asyncHandler(async (req, res) => {
+  // Get credentials from body
+  const { email, password, username } = req.body;
+
+  // Allow log in from email or username
+  if ((!username && !email) || !password)
+    throw new ApiError(400, 'Username/Email and Password is required');
+
+  // Get what field is provided and what is its value
+  // This helps in dynamic message generation
+  const field = username ? 'username' : 'email';
+  const value = username || email;
+
+  // Find user in db by field and value
+  const user = await User.findOne({ [field]: value });
+
+  // No user found? Throw error
+  if (!user) {
+    throw new ApiError(400, `User with ${field} ${value} does not exist`);
+  }
+
+  // Check the password
+  const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+  // Password incorrect? throw error
+  if (!isPasswordCorrect) throw new ApiError(401, 'Invalid Password');
+
+  // Generate access and refresh tokens using JWT
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+
+  // Get the logged in user
+  const loggedInUser = await User.findById(user._id).select(
+    '-password -refreshToken -emailVerificationToken -emailVerificationTokenExpiry'
+  );
+
+  // Cookie options
+  const options = {
+    httpOnly: true,
+    secure: true,
+    path: '/',
+  };
+
+  return res
+    .status(200)
+    .cookie('accessToken', accessToken, options)
+    .cookie('refreshToken', refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        'User logged in successfully'
+      )
+    );
+});
+
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: '',
+      },
+    },
+    {
+      returnDocument: 'after',
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    path: '/',
+  };
+
+  return res
+    .status(200)
+    .clearCookie('accessToken', options)
+    .clearCookie('refreshToken', options)
+    .json(new ApiResponse(200, {}, 'User logged out successfully'));
+});
+
 const registerUser = asyncHandler(async (req, res) => {
   const { email, username, password, role } = req.body;
 
@@ -84,64 +171,4 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-const loginUser = asyncHandler(async (req, res) => {
-  // Get credentials from body
-  const { email, password, username } = req.body;
-
-  // Allow log in from email or username
-  if ((!username && !email) || !password)
-    throw new ApiError(400, 'Username/Email and Password is required');
-
-  // Get what field is provided and what is its value
-  // This helps in dynamic message generation
-  const field = username ? 'username' : 'email';
-  const value = username || email;
-
-  // Find user in db by field and value
-  const user = await User.findOne({ [field]: value });
-
-  // No user found? Throw error
-  if (!user) {
-    throw new ApiError(400, `User with ${field} ${value} does not exist`);
-  }
-
-  // Check the password
-  const isPasswordCorrect = await user.isPasswordCorrect(password);
-
-  // Password incorrect? throw error
-  if (!isPasswordCorrect) throw new ApiError(401, 'Invalid Password');
-
-  // Generate access and refresh tokens using JWT
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
-  );
-
-  // Get the logged in user
-  const loggedInUser = await User.findById(user._id).select(
-    '-password -refreshToken -emailVerificationToken -emailVerificationTokenExpiry'
-  );
-
-  // Cookie options
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .cookie('accessToken', accessToken, options)
-    .cookie('refreshToken', refreshToken, options)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        'User logged in successfully'
-      )
-    );
-});
-
-export { registerUser, generateAccessAndRefreshTokens, loginUser };
+export { registerUser, generateAccessAndRefreshTokens, loginUser, logoutUser };
