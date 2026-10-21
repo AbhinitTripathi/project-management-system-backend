@@ -62,7 +62,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // Cookie options
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
   };
 
@@ -84,7 +84,9 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
+  // get user by id and alear the refresh token in DB
   await User.findByIdAndUpdate(
+    // the auth.middleware appends decoded JWT to the req body
     req.user._id,
     {
       $set: {
@@ -96,12 +98,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
+  // Use SAME OPTIONS AS LOGIN
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
   };
 
+  // Clear cookies
   return res
     .status(200)
     .clearCookie('accessToken', options)
@@ -171,4 +175,57 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-export { registerUser, generateAccessAndRefreshTokens, loginUser, logoutUser };
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, 'Current User Fetched Successfully'));
+});
+
+const verifyEmail = asyncHandler(async (req, res) => {
+  // Get Verification Token From URL
+  const { verificationToken } = req.params;
+
+  if (!verificationToken)
+    throw new ApiError(400, 'Email Verification Token is missing');
+
+  // DB stores hash version
+  // hash the incoming token to search in db
+  let hashedToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  // Search User by verification token
+  const user = await User.findOne({ emailVerificationToken: hashedToken });
+
+  if (!user) throw new ApiError(400, 'Invalid Email Verification Token');
+
+  // If verification time has expired do not verify user
+  if (user.emailVerificationTokenExpiry < Date.now())
+    throw new ApiError(400, 'Email Verification Token Expired');
+
+  // Verify User and remove token and expiry (save some bytes)
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpiry = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        isEmailVerified: true,
+      },
+      'User Email is verified'
+    )
+  );
+});
+
+export {
+  registerUser,
+  generateAccessAndRefreshTokens,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+};
