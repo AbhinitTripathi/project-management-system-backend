@@ -22,6 +22,12 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, 'Current User Fetched Successfully'));
+});
+
 const loginUser = asyncHandler(async (req, res) => {
   // Get credentials from body
   const { email, password, username } = req.body;
@@ -147,7 +153,7 @@ const registerUser = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Send verification email to user
-  sendEmail({
+  await sendEmail({
     email: user?.email,
     subject: 'Please Verify your email',
     mailGenContent: emailVerificationContent(
@@ -175,10 +181,34 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-const getCurrentUser = asyncHandler(async (req, res) => {
+const resendEmailVerification = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id);
+
+  if (!user) throw new ApiError(404, 'User does not exist');
+
+  if (user.isEmailVerified) throw new ApiError(409, 'User is already verified');
+
+  const { unhashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationTokenExpiry = tokenExpiry;
+
+  await user.save({ validateBeforeSave: false });
+
+  await sendEmail({
+    email: user?.email,
+    subject: 'Please Verify Your Email',
+    mailGenContent: emailVerificationContent(
+      user.username,
+      `${req.protocol}://${req.get('host')}/api/v1/users/verify-email/${unhashedToken}`
+    ),
+  });
+
   return res
     .status(200)
-    .json(new ApiResponse(200, req.user, 'Current User Fetched Successfully'));
+    .json(
+      new ApiResponse(200, {}, 'Mail has been sent to you registered email id')
+    );
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
@@ -228,4 +258,6 @@ export {
   loginUser,
   logoutUser,
   getCurrentUser,
+  verifyEmail,
+  resendEmailVerification,
 };
