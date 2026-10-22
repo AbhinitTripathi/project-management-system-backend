@@ -1,9 +1,53 @@
 import { ApiError } from '../utils/api-error.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { asyncHandler } from '../utils/async-handler.js';
-import { emailVerificationContent, sendEmail } from '../utils/mail.js';
+import {
+  emailVerificationContent,
+  resetPasswordContent,
+  sendEmail,
+} from '../utils/mail.js';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model.js';
+
+const forgotPasswordRequest = asyncHandler(async (req, res) => {
+  // User will fill in email and click submit
+  // in the frontend
+  const { email } = req.body;
+
+  // Get user with this email
+  const user = await User.findOne({ email });
+
+  if (!user) throw new ApiError(404, 'User not found');
+
+  // Generate temporary tokens for resetting password
+  const { unhashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
+
+  user.forgotPasswordToken = hashedToken;
+  user.forgotPasswordTokenExpiry = tokenExpiry;
+
+  await user.save({ validateBeforeSave: false });
+
+  // Send email with the required unhashed token
+  await sendEmail({
+    email: user?.email,
+    subject: 'Password reset request',
+    mailGenContent: resetPasswordContent(
+      user.username,
+      `${process.env.FORGOT_PASSWORD_REDIRECT_URL} / ${unhashedToken}`
+    ),
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        'Password reset mail has been sent on your registered mail id'
+      )
+    );
+});
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
