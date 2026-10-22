@@ -1,8 +1,9 @@
-import { User } from '../models/user.model.js';
-import { ApiResponse } from '../utils/api-response.js';
 import { ApiError } from '../utils/api-error.js';
+import { ApiResponse } from '../utils/api-response.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { emailVerificationContent, sendEmail } from '../utils/mail.js';
+import jwt from 'jsonwebtoken';
+import { User } from '../models/user.model.js';
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -181,6 +182,59 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  // Get user's refresh token from cookies or req body
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) throw new ApiError(401, 'Unauthorized Access');
+
+  try {
+    // Get data from the refresh token
+    const payload = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    // Find user having the decoded refresh token
+    const user = await User.findById(payload?._id);
+    if (!user) throw new ApiError(401, 'Invalid Refresh Token');
+
+    // Match incoming token with db token
+    // If they are not equal that means tokens have expired
+    if (incomingRefreshToken !== user?.refreshToken)
+      throw new ApiError(401, 'Refresh Token Expired');
+
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    };
+
+    // Get new access and refresh tokens
+    const { newAccessToken, newRefreshToken } =
+      await generateAccessAndRefreshTokens(user._id);
+
+    // Save new refresh Token in DB
+    user.refreshToken = newRefreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .status(200)
+      .cookie('accessToken', newAccessToken, options)
+      .cookie('refreshToken', newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { newAccessToken, refreshToken: newRefreshToken },
+          'New Access & Refresh Tokens Generated'
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, 'Invalid refresh token');
+  }
+});
+
 const resendEmailVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user?._id);
 
@@ -253,11 +307,12 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 export {
-  registerUser,
   generateAccessAndRefreshTokens,
+  getCurrentUser,
   loginUser,
   logoutUser,
-  getCurrentUser,
-  verifyEmail,
+  registerUser,
+  refreshAccessToken,
   resendEmailVerification,
+  verifyEmail,
 };
