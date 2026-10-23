@@ -61,5 +61,5 @@ export {
   userLoginValidator,
   userChangeCurrentPasswordValidator,
   userResetForgotPasswordValidator,
-  userForgotPasswordValidator
+  userForgotPasswordValidator,
 };

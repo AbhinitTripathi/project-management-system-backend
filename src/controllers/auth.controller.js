@@ -11,16 +11,19 @@ import { User } from '../models/user.model.js';
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   // Get old nad new passwords from req body
-  const { oldPassword, newPassword } = req.body
+  const { oldPassword, newPassword } = req.body;
 
   // Find user by ID
-  const user = await User.findById(req.user ? _id);
+  const user = await User.findById(req.user?._id);
 
   // Check if old password is correct
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isPasswordCorrect)
-    throw new ApiError(400, "Current password is wrong. Please provide correct password!");
+    throw new ApiError(
+      400,
+      'Current password is wrong. Please provide correct password!'
+    );
 
   // Save the new password in DB
   user.password = newPassword;
@@ -28,14 +31,8 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {},
-        "Password changed successfully"
-      )
-    )
-})
+    .json(new ApiResponse(200, {}, 'Password changed successfully'));
+});
 
 const forgotPasswordRequest = asyncHandler(async (req, res) => {
   // User will fill in email and click submit
