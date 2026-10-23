@@ -410,6 +410,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 export {
+  changeCurrentPassword,
+  forgotPasswordRequest,
   generateAccessAndRefreshTokens,
   getCurrentUser,
   loginUser,
@@ -417,5 +419,6 @@ export {
   registerUser,
   refreshAccessToken,
   resendEmailVerification,
+  resetForgotPassword,
   verifyEmail,
 };
