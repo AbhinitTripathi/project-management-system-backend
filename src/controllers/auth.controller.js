@@ -9,6 +9,34 @@ import {
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model.js';
 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  // Get old nad new passwords from req body
+  const { oldPassword, newPassword } = req.body
+
+  // Find user by ID
+  const user = await User.findById(req.user ? _id);
+
+  // Check if old password is correct
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordCorrect)
+    throw new ApiError(400, "Current password is wrong. Please provide correct password!");
+
+  // Save the new password in DB
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        "Password changed successfully"
+      )
+    )
+})
+
 const forgotPasswordRequest = asyncHandler(async (req, res) => {
   // User will fill in email and click submit
   // in the frontend
@@ -307,6 +335,37 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, {}, 'Mail has been sent to you registered email id')
     );
+});
+
+const resetForgotPassword = asyncHandler(async (req, res) => {
+  // Get reset token and new password
+  const { resetToken } = req.params;
+  const { newPassword } = req.body;
+
+  // Hash the reset token to search user in db
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  const user = await User.findOne({ forgotPasswordToken: hashedToken });
+
+  if (!user) throw new ApiError(400, 'Invalid Email Verification Token');
+
+  // Check if toekn is still valid
+  if (user.forgotPasswordTokenExpiry < Data.now())
+    throw new ApiError(400, 'Email Verification Token has Expired');
+
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordTokenExpiry = undefined;
+
+  // Change user's password
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, 'Password reset successfully'));
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
