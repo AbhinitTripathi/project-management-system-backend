@@ -1,6 +1,7 @@
 import { ApiError } from '../utils/api-error.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { asyncHandler } from '../utils/async-handler.js';
+import crypto from 'crypto';
 import {
   emailVerificationContent,
   resetPasswordContent,
@@ -59,7 +60,7 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
     subject: 'Password reset request',
     mailGenContent: resetPasswordContent(
       user.username,
-      `${process.env.FORGOT_PASSWORD_REDIRECT_URL} / ${unhashedToken}`
+      `${process.env.FORGOT_PASSWORD_REDIRECT_URL}/${unhashedToken}`
     ),
   });
 
@@ -339,6 +340,8 @@ const resetForgotPassword = asyncHandler(async (req, res) => {
   const { resetToken } = req.params;
   const { newPassword } = req.body;
 
+  if (!newPassword) throw new ApiError(400, 'Please fill in new password');
+
   // Hash the reset token to search user in db
   const hashedToken = crypto
     .createHash('sha256')
@@ -350,7 +353,7 @@ const resetForgotPassword = asyncHandler(async (req, res) => {
   if (!user) throw new ApiError(400, 'Invalid Email Verification Token');
 
   // Check if toekn is still valid
-  if (user.forgotPasswordTokenExpiry < Data.now())
+  if (user.forgotPasswordTokenExpiry < Date.now())
     throw new ApiError(400, 'Email Verification Token has Expired');
 
   user.forgotPasswordToken = undefined;
@@ -374,7 +377,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
   // DB stores hash version
   // hash the incoming token to search in db
-  let hashedToken = crypto
+  const hashedToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');

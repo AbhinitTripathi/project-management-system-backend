@@ -40,7 +40,7 @@ router
 
 router.route('/verify-email/:verificationToken').get(verifyEmail);
 
-// Secure Routes
+// Secure Routes (Routes with JWT verification)
 router
   .route('/change-password')
   .post(
@@ -50,7 +50,7 @@ router
     changeCurrentPassword
   );
 
-router.route('/current-user').post(verifyJWT, getCurrentUser);
+router.route('/current-user').get(verifyJWT, getCurrentUser);
 
 router
   .route('/resend-email-verification')
