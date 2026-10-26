@@ -44,7 +44,37 @@ const getProjectMembers = asyncHandler(async (req, res) => {});
 
 const updateMemberRole = asyncHandler(async (req, res) => {});
 
-const updateProject = asyncHandler(async (req, res) => {});
+const updateProject = asyncHandler(async (req, res) => {
+  // Get name, description & projectId
+  const { name, description } = req.body;
+  const { projectId } = rq.params;
+
+  const updates = {};
+  if (name) updates.name = name;
+  if (description) updates.description = description;
+
+  const updatedProject = await Project.findOneAndUpdate(
+    {
+      _id: projectId,
+      createdBy: req.user._id,
+    },
+    { $set: updates },
+    { new: true }
+  );
+
+  if (!updatedProject)
+    throw new ApiError(404, 'Project no found or unauthorized access');
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { updatedProject },
+      `Project Updated successfully
+        name: ${updatedProject.name},
+        description: ${updatedProject.description}`
+    )
+  );
+});
 
 export {
   addMembersToProject,
