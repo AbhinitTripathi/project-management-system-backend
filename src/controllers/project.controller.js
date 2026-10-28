@@ -4,6 +4,9 @@ import { asyncHandler } from '../utils/async-handler.js';
 import mongoose from 'mongoose';
 import { Project } from '../models/project.model.js';
 import { ProjectMember } from '../models/projectmember.model.js';
+import { ProjectNote } from '../models/note.model.js';
+import { Task } from '../models/task.model.js';
+import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
 import { UserRolesEnum } from '../utils/constants.js';
 
@@ -70,7 +73,61 @@ const deleteProject = asyncHandler(async (req, res) => {
   }
 });
 
-const getProject = asyncHandler(async (req, res) => {});
+const getProject = asyncHandler(async (req, res) => {
+  const projects = await ProjectMember.aggregate([
+    {
+      $match: {
+        user: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: 'projects',
+        localField: 'projects',
+        foreignField: '_id',
+        as: 'projects',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'projectmembers',
+              localField: '_id',
+              foreignField: 'projects',
+              as: 'projectmembers',
+            },
+          },
+          {
+            $addFields: {
+              members: {
+                $size: '$projectmembers',
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: '$project',
+    },
+    {
+      $project: {
+        project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          members: 1,
+          createdAt: 1,
+          createdBy: 1,
+        },
+        role: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, projects, 'Projects Fetched'));
+});
 
 const getProjectById = asyncHandler(async (req, res) => {});
 
