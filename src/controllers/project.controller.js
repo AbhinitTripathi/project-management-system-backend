@@ -102,21 +102,26 @@ const getProject = asyncHandler(async (req, res) => {
               },
             },
           },
+          {
+            $project: {
+              projectmembers: 0,
+            },
+          },
         ],
       },
     },
     {
-      $unwind: '$project',
+      $unwind: '$projects',
     },
     {
       $project: {
         project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          members: 1,
-          createdAt: 1,
-          createdBy: 1,
+          _id: '$projects._id',
+          name: '$projects.name',
+          description: '$projects.description',
+          members: '$projects.members',
+          createdAt: '$projects.createdAt',
+          createdBy: '$projects.createdBy',
         },
         role: 1,
         _id: 0,
@@ -129,7 +134,24 @@ const getProject = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, projects, 'Projects Fetched'));
 });
 
-const getProjectById = asyncHandler(async (req, res) => {});
+const getProjectById = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+
+  const project = await Project.findById(projectId);
+
+  if (!project)
+    throw new ApiError(404, `Project with id ${projectId} not found`);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        project,
+        `Project with id ${projectId} fetched successfully`
+      )
+    );
+});
 
 const getProjectMembers = asyncHandler(async (req, res) => {});
 
