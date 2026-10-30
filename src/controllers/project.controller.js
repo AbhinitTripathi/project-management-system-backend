@@ -6,11 +6,71 @@ import { Project } from '../models/project.model.js';
 import { ProjectMember } from '../models/projectmember.model.js';
 import { ProjectNote } from '../models/note.model.js';
 import { Task } from '../models/task.model.js';
+import { addedToProjectContent, sendEmail } from '../utils/mail.js';
 import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
 import { UserRolesEnum } from '../utils/constants.js';
 
-const addMembersToProject = asyncHandler(async (req, res) => {});
+const addMembersToProject = asyncHandler(async (req, res) => {
+  // Get user to be added
+  const { email, role } = req.body;
+  email = email?.trim().toLowerCase();
+  // Get project to add the user into
+  const { projectId } = req.params;
+
+  // Check if user has permission to add members
+  const allowedRoles = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN];
+  const requesterUser = await ProjectMember.findOne({
+    user: req.user._id,
+    project: projectId,
+  });
+  if (!requesterUser || !allowedRoles.includes(requesterUser.role))
+    throw new ApiError(403, 'You do not have permission to add members');
+
+  // Find required User
+  const user = await User.findOne({ email });
+  if (!user) throw new ApiError(404, 'Requested user not found');
+
+  // Find required project
+  const project = await Project.findById(projectId);
+  if (!project) throw new ApiError(404, 'Project not found');
+
+  // Check if user already exists as a member of the project
+  const existingMember = await ProjectMember.findOne({
+    user: user._id,
+    project: projectId,
+  });
+  if (existingMember)
+    throw new ApiError(400, 'User already a member of this project');
+
+  // Add User as a member of project
+  const createdMember = await ProjectMember.create({
+    user: user._id,
+    project: projectId,
+    role,
+  });
+
+  // Send invitation mail
+  try {
+    await sendEmail({
+      mailGenContent: addedToProjectContent(user.username, project.name),
+      email,
+      subject: 'You have been added to collaborate on a project',
+    });
+  } catch (error) {
+    console.error('Failerd to send project invitation mail: ', error);
+  }
+
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        createdMember,
+        'Member added to project successfully'
+      )
+    );
+});
 
 const createProject = asyncHandler(async (req, res) => {
   // Get name and description of project
@@ -139,18 +199,11 @@ const getProjectById = asyncHandler(async (req, res) => {
 
   const project = await Project.findById(projectId);
 
-  if (!project)
-    throw new ApiError(404, `Project with id ${projectId} not found`);
+  if (!project) throw new ApiError(404, `Project not found`);
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        project,
-        `Project with id ${projectId} fetched successfully`
-      )
-    );
+    .json(new ApiResponse(200, project, `Project fetched successfully`));
 });
 
 const getProjectMembers = asyncHandler(async (req, res) => {});

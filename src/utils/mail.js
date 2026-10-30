@@ -87,4 +87,25 @@ const resetPasswordContent = (username, passwordResetURL) => {
   };
 };
 
-export { emailVerificationContent, resetPasswordContent, sendEmail };
+// Added to project content
+const addedToProjectContent = (username, projectName) => {
+  return {
+    body: {
+      name: username,
+      greeting: 'Hello',
+      intro: [
+        `You have been successfully added to ${projectName}.`,
+        'You can now collaborate with other members of the project.',
+      ],
+      outro:
+        'If you have any questions, please contact your project administrator.',
+    },
+  };
+};
+
+export {
+  addedToProjectContent,
+  emailVerificationContent,
+  resetPasswordContent,
+  sendEmail,
+};
