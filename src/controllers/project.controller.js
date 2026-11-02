@@ -10,6 +10,7 @@ import { addedToProjectContent, sendEmail } from '../utils/mail.js';
 import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
 import { UserRolesEnum } from '../utils/constants.js';
+import { pipeline } from 'nodemailer/lib/xoauth2/index.js';
 
 const addMembersToProject = asyncHandler(async (req, res) => {
   // Get user to be added
@@ -40,15 +41,28 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     user: user._id,
     project: projectId,
   });
-  if (existingMember)
+  if (!existingMember)
     throw new ApiError(400, 'User already a member of this project');
 
   // Add User as a member of project
-  const createdMember = await ProjectMember.create({
-    user: user._id,
-    project: projectId,
-    role,
-  });
+  const createdMember = await ProjectMember.findByOneAndUpdate(
+    {
+      user: user._id,
+      project: projectId,
+    },
+    {
+      $set: { role: role },
+      $setOnInsert: {
+        user: user._id,
+        project: projectId,
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+    }
+  );
+  if (!createdMember) throw new ApiError(500, 'Internal Server Error');
 
   // Send invitation mail
   try {
@@ -206,7 +220,55 @@ const getProjectById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, project, `Project fetched successfully`));
 });
 
-const getProjectMembers = asyncHandler(async (req, res) => {});
+const getProjectMembers = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+
+  const project = await Project.findById(projectId);
+  if (!project) throw new ApiError(404, 'project not found');
+
+  const projectMembers = await ProjectMember.aggregate([
+    {
+      $match: {
+        project: new mongoose.Types.ObjectId(projectId),
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'user',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              fullname: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: '$user',
+    },
+    {
+      $project: {
+        project: 1,
+        user: 1,
+        role: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, projectMembers, 'Project Members fetched'));
+});
 
 const updateMemberRole = asyncHandler(async (req, res) => {});
 
