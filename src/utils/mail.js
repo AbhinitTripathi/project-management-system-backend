@@ -46,6 +46,22 @@ const sendEmail = async (options) => {
   }
 };
 
+// Added to project content
+const addedToProjectContent = (username, projectName) => {
+  return {
+    body: {
+      name: username,
+      greeting: 'Hello',
+      intro: [
+        `You have been successfully added to ${projectName}.`,
+        'You can now collaborate with other members of the project.',
+      ],
+      outro:
+        'If you have any questions, please contact your project administrator.',
+    },
+  };
+};
+
 // Verification mail structure
 const emailVerificationContent = (username, verificationURL) => {
   return {
@@ -87,21 +103,22 @@ const resetPasswordContent = (username, passwordResetURL) => {
   };
 };
 
-// Added to project content
-const addedToProjectContent = (username, projectName) => {
+// Updated role of a user
+const updatedRoleContent = (username, projectName, role) => {
   return {
     body: {
       name: username,
       greeting: 'Hello',
       intro: [
-        `You have been successfully added to ${projectName}.`,
-        'You can now collaborate with other members of the project.',
+        `Your role in the project "${projectName}" has been updated!`,
+        `Your new role is ${role}. Your project permissions have been updated accordingly.`,
       ],
       outro:
-        'If you have any questions, please contact your project administrator.',
+        'If you have any questions regarding your updated permissions, please contact your project administrator.',
     },
   };
 };
+
 
 export {
   addedToProjectContent,

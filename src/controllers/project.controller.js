@@ -9,7 +9,7 @@ import { Task } from '../models/task.model.js';
 import { addedToProjectContent, sendEmail } from '../utils/mail.js';
 import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
-import { UserRolesEnum } from '../utils/constants.js';
+import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
 import { pipeline } from 'nodemailer/lib/xoauth2/index.js';
 
 const addMembersToProject = asyncHandler(async (req, res) => {
@@ -270,7 +270,71 @@ const getProjectMembers = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, projectMembers, 'Project Members fetched'));
 });
 
-const updateMemberRole = asyncHandler(async (req, res) => {});
+const updateMemberRole = asyncHandler(async (req, res) => {
+  const { projectId, userId } = req.params;
+  const { newRole } = req.body;
+
+  // Get details of user trying to update the role
+  const reqUser = await ProjectMember.findOne({
+    user: req.user._id,
+    project: projectId,
+  });
+  if (!reqUser) throw new ApiError(404, 'You are not a part of this project');
+
+  // Throw error if not ADMIN
+  if (reqUser.role !== UserRolesEnum.ADMIN)
+    throw new ApiError(403, 'You are not authorized');
+
+  // Check if given role is valid
+  if (!AvailableUserRole.includes(newRole))
+    throw new ApiError(400, 'Invalid Role');
+
+  // Check if the given project and userId are valid
+  if (
+    !mongoose.isValidObjectId(projectId) ||
+    !mongoose.isValidObjectId(userId)
+  ) {
+    throw new ApiError(400, 'Invalid project or user ID');
+  }
+
+  // Atomic: Update member and get username, email (from User)
+  // project name (from Project)
+  const updatedMember = await ProjectMember.findOneAndUpdate(
+    {
+      user: userId,
+      project: projectId,
+    },
+    {
+      $set: { role: newRole },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  )
+    .populate('user', 'username email')
+    .populate('project', 'name');
+
+  // Member not in project
+  if (!updatedMember)
+    throw new ApiError(404, 'User not found in given project');
+
+  await sendEmail({
+    mailGenContent: updatedRoleContent(
+      updatedMember.user.username,
+      updatedMember.project.name,
+      newRole
+    ),
+    subject: 'Your role has been updated!',
+    email: updatedMember.user.email,
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedMember, 'Member role updated successfully')
+    );
+});
 
 const updateProject = asyncHandler(async (req, res) => {
   // Get name, description & projectId
