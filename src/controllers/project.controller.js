@@ -109,7 +109,35 @@ const createProject = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, { project }, 'Project Created Successfully'));
 });
 
-const deleteMember = asyncHandler(async (req, res) => {});
+const deleteMember = asyncHandler(async (req, res) => {
+  const { projectId, userId } = req.body;
+
+  // Validate project and user id
+  if (!mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(projectId))
+    throw new ApiError(400, 'Invalid project or user Id');
+
+  // Find requesting user's membership
+  const reqUser = await ProjectMember.findOne({
+    user: req.user._id,
+    project: projectId,
+  });
+  if (!reqUser) throw new ApiError(404, 'User does not exist in the project');
+
+  // Check authorization
+  if (reqUser.role !== UserRolesEnum.ADMIN)
+    throw new ApiError(403, 'You are not authorized to delete user');
+
+  // Delete user
+  const userToBeDel = await ProjectMember.findOneAndDelete({
+    user: userId,
+    project: projectId,
+  });
+  if (!userToBeDel) throw new ApiError(404, 'User to be deleted not found');
+
+  return res
+    .status(204)
+    .json(new ApiResponse(204, userToBeDel, 'User deleted successfully'));
+});
 
 const deleteProject = asyncHandler(async (req, res) => {
   // Get projectId from req prameters
