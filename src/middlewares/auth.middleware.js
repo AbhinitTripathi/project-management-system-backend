@@ -1,6 +1,7 @@
 import { ApiError } from '../utils/api-error.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import jwt from 'jsonwebtoken';
+import { ProjectMember } from '../models/projectmember.model.js';
 import { User } from '../models/user.model.js';
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
@@ -28,3 +29,26 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, 'Invalid access token');
   }
 });
+
+export const validateProjectPermission = (roles = []) => {
+  asyncHandler(async (req, res, next) => {
+    const { projectId } = req.params;
+
+    if (!projectId) throw new ApiError(400, 'ProjectId is required');
+
+    const projectMember = await ProjectMember.findOne({
+      user: req.user._id,
+      project: projectId,
+    });
+
+    if (!projectMember) throw new ApiError(404, 'Required project not found');
+
+    const memberRole = projectMember?.role;
+    req.user.role = memberRole;
+
+    if (!roles.includes(memberRole.toUpperCase()))
+      throw new ApiError(403, "You don't have permission to execute this task");
+
+    next();
+  });
+};
