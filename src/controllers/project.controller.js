@@ -6,26 +6,21 @@ import { Project } from '../models/project.model.js';
 import { ProjectMember } from '../models/projectmember.model.js';
 import { ProjectNote } from '../models/note.model.js';
 import { Task } from '../models/task.model.js';
-import { addedToProjectContent, sendEmail } from '../utils/mail.js';
+import {
+  addedToProjectContent,
+  sendEmail,
+  updatedRoleContent,
+} from '../utils/mail.js';
 import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
 import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
 
 const addMembersToProject = asyncHandler(async (req, res) => {
   // Get user to be added
-  const { email, role } = req.body;
+  let { email, role } = req.body;
   email = email?.trim().toLowerCase();
   // Get project to add the user into
   const { projectId } = req.params;
-
-  // Check if user has permission to add members
-  const allowedRoles = [UserRolesEnum.ADMIN, UserRolesEnum.PROJECT_ADMIN];
-  const requesterUser = await ProjectMember.findOne({
-    user: req.user._id,
-    project: projectId,
-  });
-  if (!requesterUser || !allowedRoles.includes(requesterUser.role))
-    throw new ApiError(403, 'You do not have permission to add members');
 
   // Find required User
   const user = await User.findOne({ email });
@@ -40,11 +35,11 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     user: user._id,
     project: projectId,
   });
-  if (!existingMember)
+  if (existingMember)
     throw new ApiError(400, 'User already a member of this project');
 
   // Add User as a member of project
-  const createdMember = await ProjectMember.findByOneAndUpdate(
+  const createdMember = await ProjectMember.findOneAndUpdate(
     {
       user: user._id,
       project: projectId,
@@ -57,7 +52,7 @@ const addMembersToProject = asyncHandler(async (req, res) => {
       },
     },
     {
-      new: true,
+      returnDocument: 'after',
       upsert: true,
     }
   );
@@ -109,7 +104,7 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 const deleteMember = asyncHandler(async (req, res) => {
-  const { projectId, userId } = req.body;
+  const { projectId, userId } = req.params;
 
   // Validate project and user id
   if (!mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(projectId))
@@ -152,7 +147,7 @@ const deleteProject = asyncHandler(async (req, res) => {
 
       // Check authorization
       if (!project) throw new ApiError(404, 'Project not found');
-      if (project.createdBy.equals(req.user._id))
+      if (!project.createdBy.equals(req.user._id))
         throw new ApiError(403, 'Forbidden/unauthorized request');
 
       // Delete the corresponding projectMembers, ProjectNotes, Tasks, SubTasks
@@ -184,45 +179,39 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: 'projects',
-        localField: 'projects',
+        localField: 'project',
         foreignField: '_id',
-        as: 'projects',
+        as: 'project',
         pipeline: [
           {
             $lookup: {
               from: 'projectmembers',
               localField: '_id',
-              foreignField: 'projects',
+              foreignField: 'project',
               as: 'projectmembers',
             },
           },
           {
             $addFields: {
-              members: {
-                $size: '$projectmembers',
-              },
+              members: { $size: '$projectmembers' },
             },
           },
           {
-            $project: {
-              projectmembers: 0,
-            },
+            $project: { projectmembers: 0 },
           },
         ],
       },
     },
-    {
-      $unwind: '$projects',
-    },
+    { $unwind: '$project' },
     {
       $project: {
         project: {
-          _id: '$projects._id',
-          name: '$projects.name',
-          description: '$projects.description',
-          members: '$projects.members',
-          createdAt: '$projects.createdAt',
-          createdBy: '$projects.createdBy',
+          _id: '$project._id',
+          name: '$project.name',
+          description: '$project.description',
+          members: '$project.members',
+          createdAt: '$project.createdAt',
+          createdBy: '$project.createdBy',
         },
         role: 1,
         _id: 0,
@@ -366,8 +355,7 @@ const updateMemberRole = asyncHandler(async (req, res) => {
 const updateProject = asyncHandler(async (req, res) => {
   // Get name, description & projectId
   const { name, description } = req.body;
-  const { projectId } = rq.params;
-
+  const { projectId } = req.params;
   const updates = {};
   if (name) updates.name = name;
   if (description) updates.description = description;

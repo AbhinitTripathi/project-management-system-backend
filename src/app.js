@@ -29,7 +29,7 @@ import projectRouter from './routes/project.routes.js';
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/healthcheck', healthCheckRouter);
-app.use('/api/vi/projects', projectRouter);
+app.use('/api/v1/projects', projectRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello there!');

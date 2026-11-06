@@ -46,7 +46,7 @@ router
   )
   .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteProject);
 
-// Routes for Get, Insert project members ot a certain project
+// Routes for Get, Insert project members of a certain project
 router
   .route('/:projectId/members')
   .get(getProjectMembers)

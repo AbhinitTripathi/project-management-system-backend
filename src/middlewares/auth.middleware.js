@@ -46,7 +46,7 @@ export const validateProjectPermission = (roles = []) => {
     const memberRole = projectMember?.role;
     req.user.role = memberRole;
 
-    if (!roles.includes(memberRole.toUpperCase()))
+    if (!roles.includes(memberRole.toLowerCase()))
       throw new ApiError(403, "You don't have permission to execute this task");
 
     next();

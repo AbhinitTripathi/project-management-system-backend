@@ -119,10 +119,10 @@ const updatedRoleContent = (username, projectName, role) => {
   };
 };
 
-
 export {
   addedToProjectContent,
   emailVerificationContent,
   resetPasswordContent,
   sendEmail,
+  updatedRoleContent,
 };
