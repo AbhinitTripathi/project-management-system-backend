@@ -10,7 +10,6 @@ import { addedToProjectContent, sendEmail } from '../utils/mail.js';
 import { SubTask } from '../models/subtask.model.js';
 import { User } from '../models/user.model.js';
 import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
-import { pipeline } from 'nodemailer/lib/xoauth2/index.js';
 
 const addMembersToProject = asyncHandler(async (req, res) => {
   // Get user to be added
@@ -175,7 +174,7 @@ const deleteProject = asyncHandler(async (req, res) => {
   }
 });
 
-const getProject = asyncHandler(async (req, res) => {
+const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
     {
       $match: {
@@ -401,7 +400,7 @@ export {
   createProject,
   deleteMember,
   deleteProject,
-  getProject,
+  getProjects,
   getProjectById,
   getProjectMembers,
   updateMemberRole,

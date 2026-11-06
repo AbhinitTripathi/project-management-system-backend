@@ -1,4 +1,4 @@
-import { AvailableUserRole } from '../utils/constants';
+import { AvailableUserRole } from '../utils/constants.js';
 import { body, oneOf } from 'express-validator';
 
 const addProjectMemeberValidator = () => {
@@ -22,6 +22,11 @@ const createProjectValidator = () => {
   return [
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('description').trim().optional(),
+    body('role')
+      .trim()
+      .notEmpty()
+      .withMessage('Member role not given')
+      .isIn(AvailableUserRole),
   ];
 };
 
