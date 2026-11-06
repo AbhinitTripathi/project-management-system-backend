@@ -57,4 +57,10 @@ router
     addMembersToProject
   );
 
+// Routes for Updating or Deleting a project member
+router
+  .route('/:projectId/members/:userId')
+  .put(validateProjectPermission([UserRolesEnum.ADMIN]), updateMemberRole)
+  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteMember);
+
 export default router;
