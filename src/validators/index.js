@@ -1,5 +1,12 @@
 import { body, oneOf } from 'express-validator';
 
+const createProjectValidator = () => {
+  return [
+    body('name').trim().notEmpty().withMessage('Name is required'),
+    body('description').trim().optional(),
+  ];
+};
+
 const userChangeCurrentPasswordValidator = () => {
   return [
     body('oldPassword').notEmpty().withMessage('Old Password is Required'),
@@ -57,6 +64,7 @@ const userRegisterValidator = () => {
 };
 
 export {
+  createProjectValidator,
   userRegisterValidator,
   userLoginValidator,
   userChangeCurrentPasswordValidator,
