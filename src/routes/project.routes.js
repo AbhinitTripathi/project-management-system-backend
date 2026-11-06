@@ -31,4 +31,19 @@ router
   .get(getProjects)
   .post(createProjectValidator(), validate, createProject);
 
+// Routes for Get, Update, Delete Projects by ID
+router
+  .route('/:projectId')
+  .get(validateProjectPermission(AvailableUserRole), getProjectById)
+  .put(
+    validateProjectPermission([
+      UserRolesEnum.ADMIN,
+      UserRolesEnum.PROJECT_ADMIN,
+    ]),
+    createProjectValidator(),
+    validate,
+    updateProject
+  )
+  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteProject);
+
 export default router;
