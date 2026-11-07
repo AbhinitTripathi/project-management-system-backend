@@ -63,7 +63,19 @@ const deleteTask = asyncHandler(async (req, res) => {});
 
 const getTaskById = asyncHandler(async (req, res) => {});
 
-const getTasks = asyncHandler(async (req, res) => {});
+const getTasks = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  if (!Project.exists({ _id: new mongoose.Types.ObjectId(projectId) }))
+    throw new ApiError(404, 'Project not found');
+
+  const tasks = await Task.find({
+    project: new mongoose.Types.ObjectId(projectId),
+  }).populate('assignedTo', 'avatar username fullName');
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, tasks, 'Tasks fetched successfully'));
+});
 
 const updateSubTask = asyncHandler(async (req, res) => {});
 
