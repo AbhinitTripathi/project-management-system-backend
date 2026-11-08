@@ -61,7 +61,80 @@ const deleteSubTask = asyncHandler(async (req, res) => {});
 
 const deleteTask = asyncHandler(async (req, res) => {});
 
-const getTaskById = asyncHandler(async (req, res) => {});
+const getTaskById = asyncHandler(async (req, res) => {
+  const { taskId } = req.params;
+
+  const task = await Task.aggregate([
+    {
+      $match: new mongoose.Types.ObjectId(taskId),
+    },
+
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'assignedTo',
+        foreignField: '_id',
+        as: 'assignedTo',
+        pipeline: [
+          {
+            _id: 1,
+            username: 1,
+            fullname: 1,
+            avatar: 1,
+          },
+        ],
+      },
+    },
+
+    {
+      $lookup: {
+        from: 'subtasks',
+        localField: '_id',
+        foreignField: 'task',
+        as: 'subtasks',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'createdBy',
+              foreignField: '_id',
+              as: 'createdBy',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    username: 1,
+                    fullname: 1,
+                    avatar: 1,
+                  },
+                },
+                {
+                  $addFields: {
+                    createdBy: { $arrayElemAt: ['$createdBy', 0] },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $addFields: {
+        assignedTo: { $arrayElemAt: ['$assinedTo', 0] },
+      },
+    },
+  ]);
+
+  if (!task || task.length === 0) {
+    throw new ApiError(404, 'Task not found');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, task[0], 'Task fetched successfullt'));
+});
 
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
