@@ -11,7 +11,35 @@ import { User } from '../models/user.model.js';
 import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
 import removeUploads from '../utils/uploads.js';
 
-const createSubTask = asyncHandler(async (req, res) => {});
+const createSubTask = asyncHandler(async (req, res) => {
+  // Extract title, taskId, projectId
+  const { title } = req.body;
+  if (!title) throw new ApiError(400, 'Title is required');
+
+  const { taskId, projectId } = req.params;
+  if (!(await Task.exists({ _id: taskId })))
+    throw new ApiError(404, 'task not found');
+  if (!(await Project.exists({ _id: projectId })))
+    throw new ApiError(404, 'project not found');
+
+  // Check if given task belongs to said project
+  const task = await Task.findOne({ _id: taskId, project: projectId }).select(
+    '_id'
+  );
+  if (!task) throw new ApiError(404, 'Task not found in current project');
+
+  // Create SubTask
+  const subTask = await SubTask.create({
+    title: title,
+    task: taskId,
+    project: projectId,
+    createdBy: new mongoose.Types.ObjectId(req.user._id),
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, subTask, 'Sub Task created'));
+});
 
 const createTask = asyncHandler(async (req, res) => {
   const { title, description, assignedTo, status } = req.body;
