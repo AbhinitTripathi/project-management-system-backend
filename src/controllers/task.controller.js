@@ -22,12 +22,6 @@ const createSubTask = asyncHandler(async (req, res) => {
   if (!(await Project.exists({ _id: projectId })))
     throw new ApiError(404, 'project not found');
 
-  // Check if given task belongs to said project
-  const task = await Task.findOne({ _id: taskId, project: projectId }).select(
-    '_id'
-  );
-  if (!task) throw new ApiError(404, 'Task not found in current project');
-
   // Create SubTask
   const subTask = await SubTask.create({
     title: title,
@@ -35,6 +29,17 @@ const createSubTask = asyncHandler(async (req, res) => {
     project: projectId,
     createdBy: new mongoose.Types.ObjectId(req.user._id),
   });
+
+  if (!subTask) {
+    // Check validity
+    if (!(await Task.exists({ _id: taskId })))
+      throw new ApiError(404, 'task not found');
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'project not found');
+
+    // Bothe project and task do not exist together
+    throw new ApiError(400, 'Task does not belong to this project');
+  }
 
   return res
     .status(201)
@@ -85,7 +90,33 @@ const createTask = asyncHandler(async (req, res) => {
   }
 });
 
-const deleteSubTask = asyncHandler(async (req, res) => {});
+const deleteSubTask = asyncHandler(async (req, res) => {
+  // Get project id and subtask id from the url
+  const { projectId, subTaskId } = req.params;
+
+  // Delete subtask
+  const deletedSubTask = await SubTask.findOneAndDelete({
+    _id: subTaskId,
+    project: projectId,
+  });
+
+  if (!deletedSubTask) {
+    // Check validity
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+    if (!(await SubTask.exists({ _id: subTaskId })))
+      throw new ApiError(404, 'Subtask not found');
+
+    // Both project and subtask do not exist together
+    throw new ApiError(400, 'Subtask does not belong to this project');
+  }
+
+  return res
+    .status(204)
+    .json(
+      new ApiResponse(204, deletedSubTask, 'Sub Task deleted successfully')
+    );
+});
 
 const deleteTask = asyncHandler(async (req, res) => {});
 
