@@ -1,14 +1,11 @@
 import { ApiError } from '../utils/api-error.js';
 import { ApiResponse } from '../utils/api-response.js';
 import { asyncHandler } from '../utils/async-handler.js';
-import mongoose, { mongo } from 'mongoose';
+import mongoose from 'mongoose';
 import { Project } from '../models/project.model.js';
 import { ProjectMember } from '../models/projectmember.model.js';
-import { ProjectNote } from '../models/note.model.js';
 import { Task } from '../models/task.model.js';
 import { SubTask } from '../models/subtask.model.js';
-import { User } from '../models/user.model.js';
-import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
 import removeUploads from '../utils/uploads.js';
 
 const createSubTask = asyncHandler(async (req, res) => {
@@ -296,7 +293,35 @@ const updateSubTask = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedDoc, 'Sub Task updated successfully'));
 });
 
-const updateTask = asyncHandler(async (req, res) => {});
+const updateTask = asyncHandler(async (req, res) => {
+  const { projectId, taskId } = req.params;
+
+  const { title, description, assignedTo, status, attachments } = req.body;
+  const updates = { title, description, assignedTo, status, attachments };
+  Object.keys(updates).forEach(
+    (k) => updates[k] === undefined && delete updates[k]
+  );
+  if (Object.keys(updates).length === 0)
+    throw new ApiError(400, 'No Updates Given!');
+
+  const updatedTask = await Task.findOneAndUpdate(
+    { _id: taskId, project: projectId },
+    { $set: updates },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedTask) {
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+    if (!(await Task.exists({ _id: taskId })))
+      throw new ApiError(404, 'Task not found');
+    throw new ApiError(400, 'Task does not exist in this project');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedTask, 'Task updated successfully'));
+});
 
 export {
   createSubTask,
