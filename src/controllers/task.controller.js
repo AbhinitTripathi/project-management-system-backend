@@ -118,7 +118,52 @@ const deleteSubTask = asyncHandler(async (req, res) => {
     );
 });
 
-const deleteTask = asyncHandler(async (req, res) => {});
+const deleteTask = asyncHandler(async (req, res) => {
+  const { projectId, taskId } = req.params;
+
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      // Existence and ownership check in one query
+      const task = await Task.findOne({ _id: taskId, project: projectId })
+        .select('createdBy')
+        .session(session);
+
+      if (!task) {
+        // Nothing matched: work out which error to report
+        if (!(await Project.exists({ _id: projectId }).session(session)))
+          throw new ApiError(404, 'Project not found');
+        if (!(await Task.exists({ _id: taskId }).session(session)))
+          throw new ApiError(404, 'Task not found');
+        throw new ApiError(400, 'Task does not belong to this project');
+      }
+
+      if (!task.createdBy.equals(req.user._id))
+        throw new ApiError(
+          403,
+          'Unauthorized access: You cannot delete the task!'
+        );
+
+      // Delete dependents first, then the task itself
+      await SubTask.deleteMany({ task: taskId }, { session }); // verify field name
+      await Task.deleteOne({ _id: taskId }, { session });
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  // Respond only after the transaction has committed
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        'Task deleted successfully along with its related subtasks'
+      )
+    );
+});
 
 const getTaskById = asyncHandler(async (req, res) => {
   const { taskId } = req.params;

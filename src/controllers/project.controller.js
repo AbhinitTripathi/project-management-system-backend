@@ -134,39 +134,36 @@ const deleteMember = asyncHandler(async (req, res) => {
 });
 
 const deleteProject = asyncHandler(async (req, res) => {
-  // Get projectId from req prameters
   const { projectId } = req.params;
 
-  // Start a mongoose session for DB Transaction
   const session = await mongoose.startSession();
 
   try {
     await session.withTransaction(async () => {
-      // Find the project to be deleted
-      const project = await Project.findById(projectId).session(session);
+      // Authorization and existence check in one query
+      const project = await Project.findById(projectId)
+        .select('createdBy')
+        .session(session);
 
-      // Check authorization
       if (!project) throw new ApiError(404, 'Project not found');
       if (!project.createdBy.equals(req.user._id))
         throw new ApiError(403, 'Forbidden/unauthorized request');
 
-      // Delete the corresponding projectMembers, ProjectNotes, Tasks, SubTasks
+      // Delete dependents first, then the project itself
       await ProjectMember.deleteMany({ projectId }, { session });
       await ProjectNote.deleteMany({ projectId }, { session });
       await Task.deleteMany({ projectId }, { session });
       await SubTask.deleteMany({ projectId }, { session });
-
-      // Delete the corresponding Project
       await Project.deleteOne({ _id: projectId }, { session });
-
-      return res
-        .status(200)
-        .json(new ApiResponse(200, {}, 'Project deleted successfully'));
     });
   } finally {
-    // End Session
     await session.endSession();
   }
+
+  // Respond only after the transaction has committed
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, 'Project deleted successfully'));
 });
 
 const getProjects = asyncHandler(async (req, res) => {
