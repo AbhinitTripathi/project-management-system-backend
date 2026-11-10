@@ -254,7 +254,47 @@ const getTasks = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, tasks, 'Tasks fetched successfully'));
 });
 
-const updateSubTask = asyncHandler(async (req, res) => {});
+const updateSubTask = asyncHandler(async (req, res) => {
+  // Get requried Data from url and body
+  const { projectId, subTaskId } = req.params;
+  const { title, isCompleted } = req.body;
+
+  // Remove updates that are undefined
+  const updates = { title, isCompleted };
+  Object.keys(updates).forEach(
+    (k) => updates[k] === undefined && delete updates[k]
+  );
+
+  // Find requried sub  task
+  const subTask = await SubTask.findOne({
+    _id: subTaskId,
+    project: projectId,
+  }).select('createdBy');
+
+  // If the subtask does not exists check why
+  if (!subTask) {
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+    if (!(await SubTask.exists({ _id: subTaskId })))
+      throw new ApiError(404, 'Sub Task not found');
+    throw new ApiError(400, 'Sub Task does not belong to given project');
+  }
+
+  // Check if the logged in user is authorized to take this action
+  if (!subTask.createdBy.equals(req.user._id))
+    throw new ApiError(403, 'You are not authorized to delete this sub task');
+
+  // Perform and save the updates
+  const updatedDoc = await SubTask.findOneAndUpdate(
+    { _id: subTaskId, project: projectId },
+    { $set: updates },
+    { new: true, runValidators: true }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedDoc, 'Sub Task updated successfully'));
+});
 
 const updateTask = asyncHandler(async (req, res) => {});
 
