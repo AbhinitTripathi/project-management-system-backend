@@ -147,7 +147,15 @@ const deleteTaskValidator = () => {
     param('projectId').isMongoId().withMessage('Invalid project id'),
     param('taskId').isMongoId().withMessage('Invalid task id'),
   ];
-}
+};
+
+const getTaskByIdValidator = () => {
+  return [param('taskId').isMongoId().withMessage('Invalid task id')];
+};
+
+const getTasksValidator = () => {
+  return [param('projectId').isMongoId().withMessage('Invalid project id')];
+};
 
 export {
   addProjectMemeberValidator,
