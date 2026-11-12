@@ -112,7 +112,11 @@ const createTaskValidator = () => {
       .bail()
       .isLength({ min: 3, max: 100 })
       .withMessage('Title must be 3-100 characters long'),
-    body('description').optional().trim(),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 1000 })
+      .withMessage('description must be 3-1000 characters long'),
     body('assignedTo')
       .notEmpty()
       .withMessage('You need to assign this task to some user')
@@ -127,9 +131,6 @@ const createTaskValidator = () => {
       .isIn(AvailableTaskStatus)
       .withMessage('Not a valid task status'),
     param('projectId')
-      .notEmpty()
-      .withMessage('Project id is required')
-      .bail()
       .isMongoId()
       .withMessage('Not a valid mongo ObjectId, projectId'),
   ];
@@ -155,6 +156,49 @@ const getTaskByIdValidator = () => {
 
 const getTasksValidator = () => {
   return [param('projectId').isMongoId().withMessage('Invalid project id')];
+};
+
+const updateSubTaskValidator = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid project id'),
+    param('taskId').isMongoId().withMessage('Invalid task id'),
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 100 })
+      .withMessage('Title must be 3-100 characters long'),
+    body('isCompleted')
+      .optional()
+      .isBoolean({ strict: true })
+      .withMessage('completed status must be true or false'),
+  ];
+};
+
+const updateTaskValidator = () => {
+  return [
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 100 })
+      .withMessage('Title must be 3-100 characters long'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 1000 })
+      .withMessage('description must be 3-1000 characters long'),
+    body('assignedTo')
+      .optional()
+      .isMongoId()
+      .withMessage('Not a valid mongo ObjectId, assignedTo'),
+    body('status')
+      .optional()
+      .trim()
+      .isIn(AvailableTaskStatus)
+      .withMessage('Not a valid task status'),
+    param('projectId')
+      .isMongoId()
+      .withMessage('Not a valid mongo ObjectId, projectId'),
+  ];
 };
 
 export {
