@@ -99,9 +99,9 @@ const createSubTaskValidator = () => {
       .withMessage('Not a valid mongo ObjectId, create sub task /taskId'),
     param('projectId')
       .isMongoId()
-      .withMessage('Not a valid mongo ObjectId, create sub task /projectId')
+      .withMessage('Not a valid mongo ObjectId, create sub task /projectId'),
   ];
-}
+};
 
 const createTaskValidator = () => {
   return [
@@ -134,6 +134,20 @@ const createTaskValidator = () => {
       .withMessage('Not a valid mongo ObjectId, projectId'),
   ];
 };
+
+const deleteSubTaskValidator = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid project id'),
+    param('taskId').isMongoId().withMessage('Invalid task id'),
+  ];
+};
+
+const deleteTaskValidator = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid project id'),
+    param('taskId').isMongoId().withMessage('Invalid task id'),
+  ];
+}
 
 export {
   addProjectMemeberValidator,
