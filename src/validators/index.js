@@ -1,4 +1,3 @@
-import { title } from 'process';
 import { AvailableUserRole, AvailableTaskStatus } from '../utils/constants.js';
 import { body, oneOf, param } from 'express-validator';
 
@@ -94,7 +93,7 @@ const createSubTaskValidator = () => {
       .bail()
       .isLength({ min: 3, max: 100 })
       .withMessage('Title must be 3-100 characters long'),
-    param('taskId')
+    param('subTaskId')
       .isMongoId()
       .withMessage('Not a valid mongo ObjectId, create sub task /taskId'),
     param('projectId')
@@ -139,7 +138,7 @@ const createTaskValidator = () => {
 const deleteSubTaskValidator = () => {
   return [
     param('projectId').isMongoId().withMessage('Invalid project id'),
-    param('taskId').isMongoId().withMessage('Invalid task id'),
+    param('subTaskId').isMongoId().withMessage('Invalid task id'),
   ];
 };
 
@@ -202,11 +201,24 @@ const updateTaskValidator = () => {
 };
 
 export {
-  addProjectMemeberValidator,
-  createProjectValidator,
+  // Auth Exports
   userRegisterValidator,
   userLoginValidator,
   userChangeCurrentPasswordValidator,
   userResetForgotPasswordValidator,
   userForgotPasswordValidator,
+
+  // Project Exports
+  addProjectMemeberValidator,
+  createProjectValidator,
+
+  // Task Exports
+  createSubTaskValidator,
+  createTaskValidator,
+  deleteSubTaskValidator,
+  deleteTaskValidator,
+  getTaskByIdValidator,
+  getTasksValidator,
+  updateSubTaskValidator,
+  updateTaskValidator,
 };
