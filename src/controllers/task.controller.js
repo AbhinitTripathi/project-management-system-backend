@@ -162,6 +162,92 @@ const deleteTask = asyncHandler(async (req, res) => {
     );
 });
 
+const getSubTasks = asyncHandler(async (req, res) => {
+  const { projectId, taskId } = req.params;
+
+  const userFields = { _id: 0, avatar: 1, username: 1, fullname: 1, email: 1 };
+
+  const [subTasks] = await Task.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(taskId),
+        project: new mongoose.Types.ObjectId(projectId),
+      },
+    },
+
+    // Project | many-to-one
+    {
+      $lookup: {
+        from: 'projects',
+        localField: 'project',
+        foreignField: '_id',
+        pipeline: [{ $project: { name: 1 } }],
+        as: 'project',
+      },
+    },
+    { $unwind: '$project' },
+
+    // Task createdBy | many-to-one
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'createdBy',
+        foreignField: '_id',
+        pipeline: [{ $project: userFields }],
+        as: 'createdBy',
+      },
+    },
+    { $unwind: '$createdBy' },
+
+    // Subtasks | one-to-many
+    {
+      $lookup: {
+        from: 'subtasks',
+        localField: '_id',
+        foreignField: 'task',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'createdBy',
+              foreignField: '_id',
+              pipeline: [{ $project: userFields }],
+              as: 'createdBy',
+            },
+          },
+          { $unwind: '$createdBy' },
+          { $project: { _id: 0, title: 1, isCompleted: 1, createdBy: 1 } },
+        ],
+        as: 'subtasks',
+      },
+    },
+
+    // Final shape
+    {
+      $project: {
+        _id: 0,
+        projectName: '$project.name',
+        taskName: '$name',
+        taskStatus: '$status',
+        createdBy: 1,
+        subtasks: 1,
+      },
+    },
+  ]);
+
+  if (!subTasks) {
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+    if (!(await Task.exists({ _id: taskId })))
+      throw new ApiError(404, 'Task not found');
+    throw new ApiError(400, 'Task does not belong to this project');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, subTasks, 'Subtasks fetched'));
+});
+
 const getTaskById = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
 
@@ -328,6 +414,7 @@ export {
   createTask,
   deleteSubTask,
   deleteTask,
+  getSubTasks,
   getTaskById,
   getTasks,
   updateSubTask,
