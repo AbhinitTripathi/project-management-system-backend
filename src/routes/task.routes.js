@@ -103,3 +103,5 @@ router
     validateProjectPermission(MANAGERS),
     deleteSubTask
   );
+
+export default router
