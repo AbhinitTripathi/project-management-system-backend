@@ -4,6 +4,7 @@ import {
   createTaskValidator,
   deleteSubTaskValidator,
   deleteTaskValidator,
+  getSubTasksValidator,
   getTaskByIdValidator,
   getTasksValidator,
   updateSubTaskValidator,
@@ -14,6 +15,7 @@ import {
   createTask,
   deleteSubTask,
   deleteTask,
+  getSubTasks,
   getTaskById,
   getTasks,
   updateSubTask,
@@ -73,7 +75,12 @@ router
 // Get and Create SubTasks
 router
   .route('/:projectId/t/:taskId/subtasks')
-  //.get() TODO
+  .get(
+    getSubTasksValidator(),
+    validate,
+    validateProjectPermission(UserRolesEnum.MEMBER),
+    getSubTasks
+  )
   .post(
     createSubTaskValidator(),
     validate,
