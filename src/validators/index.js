@@ -149,6 +149,13 @@ const deleteTaskValidator = () => {
   ];
 };
 
+const getSubTasksValidator = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid Project id'),
+    param('taskId').isMongoId().withMessage('Invalid Task id'),
+  ];
+};
+
 const getTaskByIdValidator = () => {
   return [param('taskId').isMongoId().withMessage('Invalid task id')];
 };
@@ -217,6 +224,7 @@ export {
   createTaskValidator,
   deleteSubTaskValidator,
   deleteTaskValidator,
+  getSubTasksValidator,
   getTaskByIdValidator,
   getTasksValidator,
   updateSubTaskValidator,
