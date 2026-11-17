@@ -78,7 +78,7 @@ router
   .get(
     getSubTasksValidator(),
     validate,
-    validateProjectPermission(UserRolesEnum.MEMBER),
+    validateProjectPermission(AvailableUserRole),
     getSubTasks
   )
   .post(

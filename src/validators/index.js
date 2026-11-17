@@ -93,7 +93,7 @@ const createSubTaskValidator = () => {
       .bail()
       .isLength({ min: 3, max: 100 })
       .withMessage('Title must be 3-100 characters long'),
-    param('subTaskId')
+    param('taskId')
       .isMongoId()
       .withMessage('Not a valid mongo ObjectId, create sub task /taskId'),
     param('projectId')
@@ -157,7 +157,10 @@ const getSubTasksValidator = () => {
 };
 
 const getTaskByIdValidator = () => {
-  return [param('taskId').isMongoId().withMessage('Invalid task id')];
+  return [
+    param('taskId').isMongoId().withMessage('Invalid task id'),
+    param('projectId').isMongoId().withMessage('Invalid project id'),
+  ];
 };
 
 const getTasksValidator = () => {
@@ -167,7 +170,7 @@ const getTasksValidator = () => {
 const updateSubTaskValidator = () => {
   return [
     param('projectId').isMongoId().withMessage('Invalid project id'),
-    param('taskId').isMongoId().withMessage('Invalid task id'),
+    param('subTaskId').isMongoId().withMessage('Invalid task id'),
     body('title')
       .optional()
       .trim()

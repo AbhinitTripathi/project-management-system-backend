@@ -6,7 +6,7 @@ import { Project } from '../models/project.model.js';
 import { ProjectMember } from '../models/projectmember.model.js';
 import { Task } from '../models/task.model.js';
 import { SubTask } from '../models/subtask.model.js';
-import removeUploads from '../utils/uploads.js';
+import { removeUploads } from '../utils/uploads.js';
 
 const createSubTask = asyncHandler(async (req, res) => {
   // Extract title, taskId, projectId
@@ -124,7 +124,7 @@ const deleteTask = asyncHandler(async (req, res) => {
     await session.withTransaction(async () => {
       // Existence and ownership check in one query
       const task = await Task.findOne({ _id: taskId, project: projectId })
-        .select('createdBy')
+        .select('assignedBy')
         .session(session);
 
       if (!task) {
@@ -136,7 +136,7 @@ const deleteTask = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Task does not belong to this project');
       }
 
-      if (!task.createdBy.equals(req.user._id))
+      if (!task.assignedBy.equals(req.user._id))
         throw new ApiError(
           403,
           'Unauthorized access: You cannot delete the task!'
@@ -185,7 +185,7 @@ const getSubTasks = asyncHandler(async (req, res) => {
         as: 'project',
       },
     },
-    { $unwind: '$project' },
+    { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
 
     // Task createdBy | many-to-one
     {
@@ -197,7 +197,7 @@ const getSubTasks = asyncHandler(async (req, res) => {
         as: 'createdBy',
       },
     },
-    { $unwind: '$createdBy' },
+    { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
 
     // Subtasks | one-to-many
     {
@@ -215,8 +215,8 @@ const getSubTasks = asyncHandler(async (req, res) => {
               as: 'createdBy',
             },
           },
-          { $unwind: '$createdBy' },
-          { $project: { _id: 0, title: 1, isCompleted: 1, createdBy: 1 } },
+          { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
+          { $project: { _id: 1, title: 1, isCompleted: 1, createdBy: 1 } },
         ],
         as: 'subtasks',
       },
@@ -249,13 +249,12 @@ const getSubTasks = asyncHandler(async (req, res) => {
 });
 
 const getTaskById = asyncHandler(async (req, res) => {
-  const { taskId } = req.params;
+  const { projectId, taskId } = req.params;
 
   const task = await Task.aggregate([
     {
-      $match: new mongoose.Types.ObjectId(taskId),
+      $match: { _id: new mongoose.Types.ObjectId(taskId) },
     },
-
     {
       $lookup: {
         from: 'users',
@@ -264,15 +263,16 @@ const getTaskById = asyncHandler(async (req, res) => {
         as: 'assignedTo',
         pipeline: [
           {
-            _id: 1,
-            username: 1,
-            fullname: 1,
-            avatar: 1,
+            $project: {
+              _id: 1,
+              username: 1,
+              fullname: 1,
+              avatar: 1,
+            },
           },
         ],
       },
     },
-
     {
       $lookup: {
         from: 'subtasks',
@@ -295,21 +295,20 @@ const getTaskById = asyncHandler(async (req, res) => {
                     avatar: 1,
                   },
                 },
-                {
-                  $addFields: {
-                    createdBy: { $arrayElemAt: ['$createdBy', 0] },
-                  },
-                },
               ],
+            },
+          },
+          {
+            $addFields: {
+              createdBy: { $arrayElemAt: ['$createdBy', 0] },
             },
           },
         ],
       },
     },
-
     {
       $addFields: {
-        assignedTo: { $arrayElemAt: ['$assinedTo', 0] },
+        assignedTo: { $arrayElemAt: ['$assignedTo', 0] },
       },
     },
   ]);
