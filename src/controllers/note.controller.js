@@ -5,7 +5,38 @@ import mongoose from 'mongoose';
 import { Project } from '../models/project.model.js';
 import { ProjectNote } from '../models/note.model.js';
 
-const createProjectNote = asyncHandler(async (req, res) => {});
+const createProjectNote = asyncHandler(async (req, res) => {
+  // Get data from params and body
+  const { projectId } = req.params;
+  const { content } = req.body;
+  
+  // Check if project exists
+  // If we do not check here then
+  // ProjectNote.create() will create an
+  // orphaned note in the unhappyp path!
+  // We will get a case where the project is deleted
+  // but a note belonging to that project will be
+  // created, so check existance first
+  if (!(await Project.exists({ _id: projectId })))
+    throw new ApiError(404, 'Project not found')
+  
+  // Add note to DB
+  const note = await ProjectNote.create({
+    project: projectId,
+    createdBy: req.user._id,
+    content: content,
+  });
+
+  // Check validity if note was not created
+  if (!note) {
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, note, 'A new note was added to the project'));
+});
 
 const deleteProjectNoteById = asyncHandler(async (req, res) => {});
 

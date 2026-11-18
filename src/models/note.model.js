@@ -21,4 +21,6 @@ const projectNoteSchema = new Schema(
   { timestamps: true }
 );
 
+projectNoteSchema.index({ project: 1 }, { unique: true })
+
 export const ProjectNote = mongoose.model('ProjectNote', projectNoteSchema);
