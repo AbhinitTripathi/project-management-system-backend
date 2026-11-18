@@ -27,6 +27,7 @@ import {
 } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validator.middleware.js';
 import { AvailableUserRole, UserRolesEnum } from '../utils/constants.js';
+import { upload } from '../middlewares/multer.middleware.js';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ router
     createTaskValidator(),
     validate,
     validateProjectPermission(MANAGERS),
+    upload.array('attachments', 5),
     createTask
   );
 
