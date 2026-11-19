@@ -71,6 +71,13 @@ const createProjectNoteValidator = () => {
   ];
 };
 
+const deleteNoteById = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid Project id'),
+    param('noteId').isMongoId().withMessage('Invalid Note id'),
+  ];
+};
+
 // Project Validators
 const addProjectMemeberValidator = () => {
   return [
@@ -96,12 +103,7 @@ const createProjectValidator = () => {
   ];
 };
 
-const deleteProjectById = () => {
-  return [
-    param('projectId').isMongoId().withMessage('Invalid Project id'),
-    param('noteId').isMongoId().withMessage('Invalid Note id'),
-  ];
-};
+
 
 // Task Validators
 const createSubTaskValidator = () => {
