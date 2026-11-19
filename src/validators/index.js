@@ -89,6 +89,19 @@ const getProjectNotesValidator = () => {
   return [param('projectId').isMongoId().withMessage('Invalid Project id')];
 };
 
+const updateProjectByIdValidator = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid Project Id'),
+    param('noteId').isMongoId().withMessage('Invalid Note id'),
+    body('content')
+      .trim()
+      .notEmpty()
+      .withMessage('Content is required to create Note')
+      .isLength({ max: 5000 })
+      .withMessage('Content is too long'),
+  ];
+};
+
 // Project Validators
 const addProjectMemeberValidator = () => {
   return [
