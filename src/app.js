@@ -25,11 +25,13 @@ app.use(
 // import routes
 import authRouter from './routes/auth.routes.js';
 import healthCheckRouter from './routes/healthcheck.route.js';
+import noteRouter from './controllers/note.controller.js';
 import projectRouter from './routes/project.routes.js';
 import taskRouter from './routes/task.routes.js';
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/healthcheck', healthCheckRouter);
+app.use('/api/v1/notes', noteRouter);
 app.use('/api/v1/projects', projectRouter);
 app.use('/api/v1/tasks', taskRouter);
 
