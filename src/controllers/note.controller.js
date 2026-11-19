@@ -38,8 +38,7 @@ const createProjectNote = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, note, 'A new note was added to the project'));
 });
 
-const deleteProjectNoteById = asyncHandler(async (req, res) => {
-});
+const deleteProjectNoteById = asyncHandler(async (req, res) => {});
 
 const getProjectNoteById = asyncHandler(async (req, res) => {
   const { projectId, noteId } = req.params;
@@ -145,7 +144,32 @@ const getProjectNotes = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, notes, 'Notes Fetched'));
 });
 
-const updateProjectNoteById = asyncHandler(async (req, res) => {});
+const updateProjectNoteById = asyncHandler(async (req, res) => {
+  const { projectId, noteId } = req.params;
+
+  const { content } = req.body;
+
+  const updatedNote = await ProjectNote.findOneAndUpdate(
+    { _id: noteId, project: projectId },
+    { $set: { content: content } },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!updatedNote) {
+    const [projectExists, noteExists] = await Promise.all([
+      Project.exists({ _id: projectId }),
+      ProjectNote.exists({ _id: projectId }),
+    ]);
+
+    if (!projectExists) throw new ApiError(404, 'Project not found');
+    if (!noteExists) throw new ApiError(404, 'Note not found');
+    throw new ApiError(400, 'Note does not belong to this project');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedNote, 'Note Updated!'));
+});
 
 export {
   createProjectNote,
