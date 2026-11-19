@@ -262,6 +262,13 @@ export {
   userResetForgotPasswordValidator,
   userForgotPasswordValidator,
 
+  // Notes Project
+  createProjectNoteValidator,
+  deleteNoteByIdValidator,
+  getProjectNoteByIdValidator,
+  getProjectNotesValidator,
+  updateProjectByIdValidator,
+
   // Project Exports
   addProjectMemeberValidator,
   createProjectValidator,
