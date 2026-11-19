@@ -96,6 +96,13 @@ const createProjectValidator = () => {
   ];
 };
 
+const deleteProjectById = () => {
+  return [
+    param('projectId').isMongoId().withMessage('Invalid Project id'),
+    param('noteId').isMongoId().withMessage('Invalid Note id'),
+  ];
+};
+
 // Task Validators
 const createSubTaskValidator = () => {
   return [
