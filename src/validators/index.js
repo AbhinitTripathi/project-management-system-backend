@@ -89,7 +89,7 @@ const getProjectNotesValidator = () => {
   return [param('projectId').isMongoId().withMessage('Invalid Project id')];
 };
 
-const updateProjectByIdValidator = () => {
+const updateProjectNoteByIdValidator = () => {
   return [
     param('projectId').isMongoId().withMessage('Invalid Project Id'),
     param('noteId').isMongoId().withMessage('Invalid Note id'),
@@ -262,12 +262,12 @@ export {
   userResetForgotPasswordValidator,
   userForgotPasswordValidator,
 
-  // Notes Project
+  // Notes Exports
   createProjectNoteValidator,
   deleteNoteByIdValidator,
   getProjectNoteByIdValidator,
   getProjectNotesValidator,
-  updateProjectByIdValidator,
+  updateProjectNoteByIdValidator,
 
   // Project Exports
   addProjectMemeberValidator,
