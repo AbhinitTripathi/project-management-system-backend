@@ -25,7 +25,7 @@ app.use(
 // import routes
 import authRouter from './routes/auth.routes.js';
 import healthCheckRouter from './routes/healthcheck.route.js';
-import noteRouter from './controllers/note.controller.js';
+import noteRouter from './routes/note.routes.js';
 import projectRouter from './routes/project.routes.js';
 import taskRouter from './routes/task.routes.js';
 
