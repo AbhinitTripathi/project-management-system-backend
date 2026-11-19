@@ -38,7 +38,34 @@ const createProjectNote = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, note, 'A new note was added to the project'));
 });
 
-const deleteProjectNoteById = asyncHandler(async (req, res) => {});
+const deleteProjectNoteById = asyncHandler(async (req, res) => {
+  const { projectId, noteId } = req.params;
+
+  const deletedNote = await ProjectNote.findOneAndDelete(
+    { _id: noteId, project: projectId },
+    {
+      projection: { _id: 1 },
+      lean: true,
+    }
+  );
+
+  if (!deletedNote) {
+    const [projectExists, noteExists] = await Promise.all([
+      Project.exists({ _id: projectId }),
+      ProjectNote.exists({ _id: noteId }),
+    ]);
+
+    if (!projectExists)
+      throw new ApiError(404, 'Project not found');
+    if (!noteExists)
+      throw new ApiError(404, 'Note not found');
+    throw new ApiError(400, 'Note does not belong to this project');
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, deletedNote, 'Note Successfully deleted'));
+});
 
 const getProjectNoteById = asyncHandler(async (req, res) => {
   const { projectId, noteId } = req.params;
