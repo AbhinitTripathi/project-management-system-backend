@@ -9,7 +9,7 @@ const createProjectNote = asyncHandler(async (req, res) => {
   // Get data from params and body
   const { projectId } = req.params;
   const { content } = req.body;
-  
+
   // Check if project exists
   // If we do not check here then
   // ProjectNote.create() will create an
@@ -18,8 +18,8 @@ const createProjectNote = asyncHandler(async (req, res) => {
   // but a note belonging to that project will be
   // created, so check existance first
   if (!(await Project.exists({ _id: projectId })))
-    throw new ApiError(404, 'Project not found')
-  
+    throw new ApiError(404, 'Project not found');
+
   // Add note to DB
   const note = await ProjectNote.create({
     project: projectId,
@@ -38,9 +38,56 @@ const createProjectNote = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, note, 'A new note was added to the project'));
 });
 
-const deleteProjectNoteById = asyncHandler(async (req, res) => {});
+const deleteProjectNoteById = asyncHandler(async (req, res) => {
+});
 
-const getProjectNoteById = asyncHandler(async (req, res) => {});
+const getProjectNoteById = asyncHandler(async (req, res) => {
+  const { projectId, noteId } = req.params;
+
+  const [note] = await ProjectNote.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(noteId) } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'createdBy',
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              user_id: '$_id',
+              avatar: 1,
+              username: 1,
+              fullname: 1,
+              email: 1,
+            },
+          },
+        ],
+      },
+    },
+    { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        note_id: '$_id',
+        content: 1,
+        createdBy: 1,
+        createdAt: 1,
+      },
+    },
+  ]);
+
+  if (!note) {
+    if (!(await Project.exists({ _id: projectId })))
+      throw new ApiError(404, 'Project not found');
+    if (!(await ProjectNote.exists({ _id: noteId })))
+      throw new ApiError(404, 'Note not found');
+    throw new ApiError(400, 'Note does not belong to this project');
+  }
+
+  return res.status(200).json(new ApiResponse(200, note, 'Note fetched'));
+});
 
 const getProjectNotes = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
