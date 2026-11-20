@@ -55,10 +55,8 @@ const deleteProjectNoteById = asyncHandler(async (req, res) => {
       ProjectNote.exists({ _id: noteId }),
     ]);
 
-    if (!projectExists)
-      throw new ApiError(404, 'Project not found');
-    if (!noteExists)
-      throw new ApiError(404, 'Note not found');
+    if (!projectExists) throw new ApiError(404, 'Project not found');
+    if (!noteExists) throw new ApiError(404, 'Note not found');
     throw new ApiError(400, 'Note does not belong to this project');
   }
 
